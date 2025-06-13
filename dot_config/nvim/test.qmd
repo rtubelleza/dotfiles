@@ -1,0 +1,96 @@
+---
+title: YTMA404 CosMx WTX Mask Extract
+author: Rafael Tubelleza
+format:
+    html:
+      code-fold: true
+      embed-resources: true
+jupyter: python3
+execute:
+    echo: true
+    output: true
+theme: rt.scss 
+---
+# Test imports
+```{python} 
+print()
+```
+## Test import sub2
+```{python}
+print("sub2")
+```
+### Test import sub3
+```{python}
+print("sub3")
+```
+
+```{python} 
+import matplotlib.pyplot as plt
+plt.plot([1,2,3], [4,5,6])
+plt.show()
+```
+
+# Imports
+```{python}
+import spatialdata as sd
+import wtx_registration.register_fovs as rf
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage.transform import resize
+import scipy.ndimage as sci
+import os
+import tifffile
+```
+
+# Get merged for ease
+```{python}
+sdata = sd.read_zarr("../data/merged_404.zarr")
+```
+
+
+# Create output dirs
+```{python}
+OUTPUTDIR = "../outputs/tissue_masks"
+
+if not os.path.exists(OUTPUTDIR):
+    os.makedirs(OUTPUTDIR)
+```
+
+# For a given FOV; get mask
+```{python}
+sf = 0.025
+
+
+def mask_label(im, sf=0.025):
+    # convert to binary by applying or gate
+    im = im.copy()
+    im = (im > 0).astype(np.uint8)
+    # reduce resolution, downsample;
+    im_lower = resize(
+    im,
+        output_shape=(
+            int(im.shape[0] * sf), 
+            int(im.shape[1] * sf)
+        ),
+        order=0,
+        preserve_range=True,
+        anti_aliasing=False
+    ).astype(im.dtype)
+    tifffile.imwrite(f"{OUTPUTDIR}/{i}_raw", im)
+
+    plt.imshow(im)
+    plt.gca().set_title(i+"_raw")
+    plt.show()
+    im_lower = sci.binary_fill_holes(
+        im_lower,
+    )
+    tifffile.imwrite(f"{OUTPUTDIR}/{i}_morph", im_lower)
+    plt.imshow(im_lower)
+    plt.gca().set_title(i)
+    plt.show()
+
+for i in sdata.labels.keys():
+    if i.endswith("_labels"):
+        im = sdata.labels[i]
+        mask_label(im) 
+``
